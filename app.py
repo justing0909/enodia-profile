@@ -35,7 +35,7 @@ with st.container():
     }
     /* Target the first element */
     .main .block-container > div:first-child {
-        margin-top: -8rem !important;
+        margin-top: -10rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
