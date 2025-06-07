@@ -332,19 +332,17 @@ def get_google_sheets_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Try to get credentials from environment variable first
+            # Get credentials from environment variable
             google_creds = os.getenv("GOOGLE_CREDENTIALS")
-            if google_creds:
-                # Create a temporary credentials file
-                with open('temp_credentials.json', 'w') as f:
-                    f.write(google_creds)
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'temp_credentials.json', SCOPES)
-                os.remove('temp_credentials.json')  # Clean up
-            else:
-                # Fall back to local file if env var not available
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'google_oauth.json', SCOPES)
+            if not google_creds:
+                raise Exception("Google credentials not found in environment variables")
+            
+            # Create a temporary credentials file
+            with open('temp_credentials.json', 'w') as f:
+                f.write(google_creds)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'temp_credentials.json', SCOPES)
+            os.remove('temp_credentials.json')  # Clean up
             creds = flow.run_local_server(port=0)
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
