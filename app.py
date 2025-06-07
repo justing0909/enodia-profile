@@ -7,9 +7,7 @@ import os
 import base64
 import json
 import dotenv
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import pickle
 # ===== Page Configuration =====
@@ -323,31 +321,25 @@ SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 RANGE_NAME = 'Sheet1!A:B'  # Adjust based on your sheet name
 
 def get_google_sheets_service():
-    creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            # Get credentials from environment variable
-            google_creds = os.getenv("GOOGLE_CREDENTIALS")
-            if not google_creds:
-                raise Exception("Google credentials not found in environment variables")
-            
-            # Create a temporary credentials file
-            with open('temp_credentials.json', 'w') as f:
-                f.write(google_creds)
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'temp_credentials.json', SCOPES)
-            os.remove('temp_credentials.json')  # Clean up
-            creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-
-    return build('sheets', 'v4', credentials=creds)
+    try:
+        # Get credentials from environment variable
+        google_creds = os.getenv("GOOGLE_CREDENTIALS")
+        if not google_creds:
+            raise Exception("Google credentials not found in environment variables")
+        
+        # Parse the credentials JSON
+        creds_dict = json.loads(google_creds)
+        
+        # Create credentials from service account info
+        credentials = service_account.Credentials.from_service_account_info(
+            creds_dict,
+            scopes=SCOPES
+        )
+        
+        return build('sheets', 'v4', credentials=credentials)
+    except Exception as e:
+        st.error(f"Error setting up Google Sheets service: {str(e)}")
+        return None
 
 def append_to_sheet(email):
     try:
