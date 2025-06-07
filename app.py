@@ -6,6 +6,11 @@ from datetime import datetime
 import os
 import base64
 import dotenv
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+import pickle
 # ===== Page Configuration =====
 dotenv.load_dotenv()
 st.set_page_config(
@@ -311,33 +316,70 @@ st.markdown("""
     </a>
     """, unsafe_allow_html=True)
 
+# ===== Google Sheets Setup =====
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")  # You'll need to replace this with your actual spreadsheet ID
+RANGE_NAME = 'Sheet1!A:B'  # Adjust based on your sheet name
+
+def get_google_sheets_service():
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'google_oauth.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    return build('sheets', 'v4', credentials=creds)
+
+def append_to_sheet(email):
+    try:
+        service = get_google_sheets_service()
+        values = [[email, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]]
+        body = {'values': values}
+        result = service.spreadsheets().values().append(
+            spreadsheetId=SPREADSHEET_ID,
+            range=RANGE_NAME,
+            valueInputOption='RAW',
+            body=body
+        ).execute()
+        return True
+    except Exception as e:
+        st.error(f"Error saving email: {str(e)}")
+        return False
+
+def get_all_subscribers():
+    try:
+        service = get_google_sheets_service()
+        result = service.spreadsheets().values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=RANGE_NAME
+        ).execute()
+        values = result.get('values', [])
+        if not values:
+            return pd.DataFrame(columns=['email', 'timestamp'])
+        return pd.DataFrame(values[1:], columns=values[0])
+    except Exception as e:
+        st.error(f"Error fetching subscribers: {str(e)}")
+        return pd.DataFrame(columns=['email', 'timestamp'])
+
 # ===== Email Capture Section =====
 st.markdown('<div class="stay-connected">Stay Connected</div>', unsafe_allow_html=True)
 st.markdown('<div class="email-label">Enter your email for a one page product summary</div>', unsafe_allow_html=True)
 email = st.text_input("", label_visibility="collapsed")
 if st.button("Subscribe"):
     if email:
-        # Create emails directory if it doesn't exist
-        if not os.path.exists('emails'):
-            os.makedirs('emails')
-            
-        # Create or load the CSV file
-        csv_file = 'emails/subscribers.csv'
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Create new entry
-        new_entry = pd.DataFrame({
-            'email': [email],
-            'timestamp': [timestamp]
-        })
-        
-        # Append to existing file or create new one
-        if os.path.exists(csv_file):
-            new_entry.to_csv(csv_file, mode='a', header=False, index=False)
+        if append_to_sheet(email):
+            st.success("Thank you for subscribing!")
         else:
-            new_entry.to_csv(csv_file, index=False)
-            
-        st.success("Thank you for subscribing!")
+            st.error("There was an error saving your email. Please try again.")
     else:
         st.error("Please enter a valid email address.")
 
@@ -345,20 +387,18 @@ if st.button("Subscribe"):
 st.markdown("---")
 with st.expander("Admin View"):
     password = st.text_input("Enter admin password", type="password")
-    if password == os.getenv("ADMIN_PASSWORD"):
-        csv_file = 'emails/subscribers.csv'
-        if os.path.exists(csv_file):
-            df = pd.read_csv(csv_file)
-            st.write(f"Total subscribers: {len(df)}")
-            st.dataframe(df)
-            
-            # Download button for the CSV
-            csv = df.to_csv(index=False)
-            st.download_button(
-                label="Download Subscribers CSV",
-                data=csv,
-                file_name="subscribers.csv",
-                mime="text/csv"
-            )
-        else:
-            st.info("No subscribers yet.") 
+    if password == "RNDM#64235":
+        df = get_all_subscribers()
+        st.write(f"Total subscribers: {len(df)}")
+        st.dataframe(df)
+        
+        # Download button for the CSV
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="Download Subscribers CSV",
+            data=csv,
+            file_name="subscribers.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("No subscribers yet.") 
