@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime
 import os
 import base64
+import json
 import dotenv
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -318,7 +319,7 @@ st.markdown("""
 
 # ===== Google Sheets Setup =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")  # You'll need to replace this with your actual spreadsheet ID
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 RANGE_NAME = 'Sheet1!A:B'  # Adjust based on your sheet name
 
 def get_google_sheets_service():
@@ -331,8 +332,19 @@ def get_google_sheets_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'google_oauth.json', SCOPES)
+            # Try to get credentials from environment variable first
+            google_creds = os.getenv("GOOGLE_CREDENTIALS")
+            if google_creds:
+                # Create a temporary credentials file
+                with open('temp_credentials.json', 'w') as f:
+                    f.write(google_creds)
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'temp_credentials.json', SCOPES)
+                os.remove('temp_credentials.json')  # Clean up
+            else:
+                # Fall back to local file if env var not available
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'google_oauth.json', SCOPES)
             creds = flow.run_local_server(port=0)
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
