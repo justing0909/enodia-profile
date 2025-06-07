@@ -35,7 +35,7 @@ with st.container():
     }
     /* Target the first element */
     .main .block-container > div:first-child {
-        margin-top: -6rem !important;
+        margin-top: -8rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -413,4 +413,4 @@ with st.expander("Admin View"):
             mime="text/csv"
         )
     else:
-        st.info("No subscribers yet.") 
+        pass 
