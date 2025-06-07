@@ -32,10 +32,17 @@ with st.container():
     /* Target the main content area */
     .main .block-container {
         padding-top: 0 !important;
+        margin-top: -10rem !important;
     }
     /* Target the first element */
     .main .block-container > div:first-child {
-        margin-top: -10rem !important;
+        margin-top: 0 !important;
+    }
+    /* Adjust the main container */
+    .main {
+        padding: 0 2rem 2rem 2rem;
+        max-width: 800px;
+        margin: 0 auto;
     }
     </style>
     """, unsafe_allow_html=True)
