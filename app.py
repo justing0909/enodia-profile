@@ -5,8 +5,9 @@ import pandas as pd
 from datetime import datetime
 import os
 import base64
-
+import dotenv
 # ===== Page Configuration =====
+dotenv.load_dotenv()
 st.set_page_config(
     page_title="Professional Profile",
     page_icon="👋",
@@ -344,7 +345,7 @@ if st.button("Subscribe"):
 st.markdown("---")
 with st.expander("Admin View"):
     password = st.text_input("Enter admin password", type="password")
-    if password == "RNDM#64235":
+    if password == os.getenv("ADMIN_PASSWORD"):
         csv_file = 'emails/subscribers.csv'
         if os.path.exists(csv_file):
             df = pd.read_csv(csv_file)
