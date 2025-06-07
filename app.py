@@ -344,6 +344,14 @@ def get_google_sheets_service():
 def append_to_sheet(email):
     try:
         service = get_google_sheets_service()
+        if not service:
+            st.error("Could not initialize Google Sheets service")
+            return False
+            
+        if not SPREADSHEET_ID:
+            st.error("Spreadsheet ID not found in environment variables")
+            return False
+            
         values = [[email, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]]
         body = {'values': values}
         result = service.spreadsheets().values().append(
@@ -355,6 +363,8 @@ def append_to_sheet(email):
         return True
     except Exception as e:
         st.error(f"Error saving email: {str(e)}")
+        if "404" in str(e):
+            st.error("Please make sure to share the Google Sheet with the service account email address")
         return False
 
 def get_all_subscribers():
