@@ -320,6 +320,9 @@ st.markdown("""
     <a href="https://calendly.com/d/cwxs-fy8-78n/learn-more-about-our-product-here" class="link-button" target="_blank">
         Schedule a Meeting with Me
     </a>
+    <a href="https://storymaps.arcgis.com/stories/ce2a2443d2684f098e7fe47546ee75cb" class="link-button" target="_blank">
+        Visit my GeoPortfolio
+    </a>
     """, unsafe_allow_html=True)
 
 # ===== Google Sheets Setup =====
